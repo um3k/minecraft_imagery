@@ -101,11 +101,10 @@ public class ImageCapture {
             for (int y = 0; y < this.options.getHeight(); y++) {
 
                 // calculate ray rotations
-                double yrotate = -((y) * this.options.getFov() / this.options.getHeight() - (this.options.getFov() / 2));
-                double xrotate = ((x) * this.options.getFov() / this.options.getWidth() - (this.options.getFov() / 2));
-
-                Vector rayTraceVector = new Vector(Math.cos(yaw + xrotate) * Math.cos(pitch + yrotate),
-                        Math.sin(pitch + yrotate), Math.sin(yaw + xrotate) * Math.cos(pitch + yrotate));
+            	double viewPlaneDistance = this.options.getWidth() / 2 / Math.tan(this.options.getFov() / 2);
+                Vector pixelVector = new Vector(viewPlaneDistance, this.options.getHeight()/2 - y, x - this.options.getWidth()/2);
+                
+                Vector rayTraceVector = pixelVector.normalize().rotateAroundZ(pitch).rotateAroundY(-yaw);
 
                 RayTraceResult entityResult = this.rayTraceEntitiesFromList(this.location, rayTraceVector, 64);
 
