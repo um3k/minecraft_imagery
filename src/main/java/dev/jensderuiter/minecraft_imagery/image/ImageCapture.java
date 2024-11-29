@@ -34,6 +34,9 @@ public class ImageCapture {
     BufferedImage image;
     Graphics2D graphics;
     Map<Player, List<RayTracedPoint2D>> playerOccurrences;
+    
+    BufferedImage lightmapDay;
+    BufferedImage lightmapNight;
 
     /**
      * Creates an instance of the ImageCapture class.
@@ -57,6 +60,9 @@ public class ImageCapture {
         );
         this.graphics = this.image.createGraphics();
         this.playerOccurrences = new HashMap<>();
+        
+        this.lightmapDay = Util.getImage("lightmap");
+        this.lightmapNight = Util.getImage("lightmapnight");
     }
 
     /**
@@ -295,30 +301,45 @@ public class ImageCapture {
             } else if (result.getHitBlockFace() == BlockFace.DOWN) {
                 dotProduct = 0.7;
             }
+            
+            BufferedImage lightmap;
+            
+            long worldTime = this.location.getWorld().getTime() % 24000;
+
+            if (!this.options.isDayLightCycleAware()
+                    // this checks if it is daytime (06:00 - 18:00)
+                    || worldTime >= 0 && worldTime <= 12000) {
+                lightmap = lightmapDay;
+            } else {
+            	lightmap = lightmapNight;
+            }
 
             // Get the original light level
             byte lightLevel = (byte) Math.max(1, Math.min(result.getHitBlock().getRelative(result.getHitBlockFace()).getLightLevel(), 15));
+            byte lightLevelSky = (byte) Math.max(1, Math.min(result.getHitBlock().getRelative(result.getHitBlockFace()).getLightFromSky(), 15));
+            byte lightLevelBlock = (byte) Math.max(1, Math.min(result.getHitBlock().getRelative(result.getHitBlockFace()).getLightFromBlocks(), 15));
 
-            // Adjust the light level based on your formula
-            double adjustedLightLevel = 0.4 + (lightLevel * 0.01 * 5);
+            // Get the light level from a lightmap
+            Color lightmapColor = new Color(lightmap.getRGB(lightLevelBlock, lightLevelSky));
+            double[] adjustedLightLevel = {lightmapColor.getRed()/255.0, lightmapColor.getGreen()/255.0, lightmapColor.getBlue()/255.0};
 
             // Now, adjust the light level based on the dot product
-            adjustedLightLevel *= dotProduct;
+            adjustedLightLevel[0] *= dotProduct;
+            adjustedLightLevel[1] *= dotProduct;
+            adjustedLightLevel[2] *= dotProduct;
 
             // Ensure the adjusted light level remains in a reasonable range (0.0 to 1.0)
-            adjustedLightLevel = Math.max(0.0, Math.min(adjustedLightLevel, 1.0));
+            // adjustedLightLevel = Math.max(0.0, Math.min(adjustedLightLevel, 1.0));
 
             // Apply the adjusted light level to the dye (assumed to be 0, 0, 0 initially)
             if (lightLevel > 0) {
                 // Scale the dye values based on the adjusted light level
                 for (int i = 0; i < dye.length; i++) {
-                    dye[i] = dye[i] * adjustedLightLevel; // This will not change dye since it's initially 0,0,0
+                    dye[i] = dye[i] * adjustedLightLevel[i]; // This will not change dye since it's initially 0,0,0
                 }
             }
 
             Color color;
-            
-            // Generate the color from the block and dye values
         	
             
             // Get the texture of the block
@@ -327,6 +348,7 @@ public class ImageCapture {
             if (!texcolor.equals(Color.MAGENTA)) {
             	color = ImageUtil.applyDye(texcolor, dye);
             } else {
+                // Generate the color from the block and dye values
             	color = ImageUtil.colorFromType(result.getHitBlock(), dye);
             }
 
