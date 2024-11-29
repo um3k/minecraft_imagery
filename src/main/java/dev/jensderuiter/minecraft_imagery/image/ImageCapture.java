@@ -10,6 +10,8 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.bukkit.block.BlockFace;
 
+import com.sovdee.snapshots.RayHit;
+
 import java.awt.*;
 import java.awt.Color;
 import java.awt.geom.Point2D;
@@ -314,8 +316,19 @@ public class ImageCapture {
                 }
             }
 
+            Color color;
+            
             // Generate the color from the block and dye values
-            Color color = ImageUtil.colorFromType(result.getHitBlock(), dye);
+        	
+            
+            // Get the texture of the block
+            RayHit rayhit = new RayHit(result);
+            Color texcolor = rayhit.getPixel();
+            if (!texcolor.equals(Color.MAGENTA)) {
+            	color = ImageUtil.applyDye(texcolor, dye);
+            } else {
+            	color = ImageUtil.colorFromType(result.getHitBlock(), dye);
+            }
 
             // If the color is not null, set the pixel in the image
             if (color != null) {
